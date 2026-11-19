@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI error challenge | Reaction Energy Solver</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+  <style>
+    body { background: #0f1f2e; min-height: 100vh; display: flex; flex-direction: column; }
+    .deck { flex: 1; display: flex; align-items: center; justify-content: center; padding: 12px; }
+    .stage {
+      width: min(98vw, calc((100vh - 84px) * 16 / 9)); aspect-ratio: 16 / 9;
+      background: var(--surface); position: relative; container-type: inline-size;
+      border-radius: 4px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, .35);
+    }
+    .slide {
+      position: absolute; inset: 0; padding: 4.2cqw 5cqw 3.6cqw; display: flex; flex-direction: column;
+      font-size: 1.5cqw; line-height: 1.45; visibility: hidden;
+    }
+    .slide.active { visibility: visible; }
+    .slide h2 { font-size: 3.1cqw; margin: 0 0 0.4em; }
+    .slide .kicker { font-size: 1.25cqw; color: var(--muted); font-weight: 600; margin-bottom: 0.6em; }
+    .slide p, .slide li { max-width: none; }
+    .slide p { margin: 0 0 0.6em; }
+    .slide ul { margin: 0; padding-left: 1.2em; }
+    .slide li { margin-bottom: 0.45em; }
+    .slide .body { flex: 1; min-height: 0; display: grid; gap: 3cqw; }
+    .slide .cols { grid-template-columns: 1fr 1fr; }
+    .slide .cols-wide { grid-template-columns: 1.25fr 1fr; }
+    .slide table.data { font-size: 1.2cqw; }
+    .slide table.data th, .slide table.data td { padding: 0.45em 0.7em; white-space: normal; }
+    .slide .chart { position: relative; min-height: 0; height: 100%; }
+    .slide .foot { display: flex; justify-content: space-between; align-items: end; gap: 2cqw; font-size: 1.1cqw; color: var(--muted); margin-top: 1.2cqw; }
+    .slide .foot a { color: var(--gibbs); font-weight: 600; }
+    .verdict-chip { display: inline-block; font-weight: 700; font-size: 1.2cqw; padding: 0.3em 0.8em; border-radius: 999px; }
+    .v-pass { background: var(--ok-bg); color: #1d5a48; }
+    .v-warn { background: var(--warn-bg); color: var(--warn-ink); }
+    .v-fix { background: var(--alert-bg); color: var(--alert); }
+    .inputbox { font-family: var(--serif); font-size: 2.4cqw; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 0.5em 0.8em; margin: 0.3em 0 0.8em; }
+    .refusal { background: var(--alert-bg); color: var(--alert); border-radius: 6px; padding: 0.8em 1em; font-weight: 500; }
+    .big { font-family: var(--serif); font-size: 4.2cqw; line-height: 1.05; margin: 0.1em 0 0.2em; }
+    .refs { font-size: 1cqw; color: var(--muted); }
+    /* title slide */
+    .slide.title { background: var(--ink); color: #fff; justify-content: center; }
+    .slide.title h1 { font-size: 5.6cqw; max-width: 22ch; margin-bottom: 0.4em; }
+    .slide.title p { font-size: 1.9cqw; color: #c9d6e1; max-width: 46ch; }
+    .slide.title .meta { font-size: 1.35cqw; color: #9fb2c2; margin-top: 3cqw; }
+    .slide.title .gline { position: absolute; right: 5cqw; bottom: 4cqw; width: 34cqw; height: 18cqw; opacity: 0.9; }
+    /* controls */
+    .controls { display: flex; align-items: center; justify-content: center; gap: 0.8rem; padding: 0 0 12px; color: #c9d6e1; font-size: 0.95rem; }
+    .controls button, .controls a {
+      font: 600 0.92rem var(--sans); color: #fff; background: #1d3448; border: 1px solid #36516a;
+      border-radius: 6px; padding: 0.45rem 0.9rem; cursor: pointer; text-decoration: none;
+    }
+    .controls button:hover, .controls a:hover { background: #26425a; }
+    .controls .count { min-width: 4.5rem; text-align: center; }
+    :fullscreen .controls { display: none; }
+    :fullscreen .stage { width: min(100vw, calc(100vh * 16 / 9)); border-radius: 0; }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="stage" id="stage" aria-roledescription="slide deck" aria-label="AI error challenge"></div>
+  </div>
+  <div class="controls">
+    <a href="index.html">Home</a>
+    <button type="button" id="prev" aria-label="Previous slide">Previous</button>
+    <span class="count" id="count" aria-live="polite"></span>
+    <button type="button" id="next" aria-label="Next slide">Next</button>
+    <button type="button" id="fs">Full screen</button>
+    <a href="solver.html">Solver</a>
+  </div>
+
+  <script src="assets/vendor/chart.umd.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/thermo.js"></script>
+  <script src="assets/js/slides.js"></script>
+</body>
+</html>

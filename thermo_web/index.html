@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reaction Energy Solver</title>
+  <meta name="description" content="Standard heat, entropy and Gibbs energy of reaction as functions of temperature, with an AI error challenge.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">Reaction Energy Solver</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="solver.html">Solver</a>
+      <a href="errors.html">AI error challenge</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Will it react, and how hot does it need to be?</h1>
+        <p class="lede">Pick a reaction and this solver works out its standard heat, entropy and
+          Gibbs energy from room temperature to 1500 K and beyond, then tells you where the
+          equilibrium tips towards products.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="solver.html">Open the solver</a>
+          <a class="btn btn-secondary" href="errors.html">See the AI error challenge</a>
+        </div>
+      </div>
+
+      <div class="demo" aria-label="Live example">
+        <div class="chips" role="group" aria-label="Example reaction" id="chips"></div>
+        <p class="demo-eq" id="demo-eq"></p>
+        <p class="demo-result" id="demo-result"></p>
+        <p class="demo-note" id="demo-note"></p>
+        <div class="demo-chart"><canvas id="demo-chart" aria-label="Standard Gibbs energy of reaction against temperature"></canvas></div>
+      </div>
+    </section>
+
+    <section class="band alt">
+      <div class="band-inner">
+        <h2>Four numbers for every reaction</h2>
+        <p>All of them are evaluated at any temperature you choose, using heat capacities of the form
+          C<sub>P</sub>°/R = A + BT + CT² + DT⁻² from Smith, Van Ness &amp; Abbott, Appendix C.</p>
+        <div class="quantities">
+          <div><div class="sym h">ΔH°</div><p>Heat of reaction. Negative means heat is released (exothermic).</p></div>
+          <div><div class="sym s">ΔS°</div><p>Entropy change, which grows in weight as temperature rises.</p></div>
+          <div><div class="sym g">ΔG°</div><p>Gibbs energy change. Below zero, products are favoured at equilibrium.</p></div>
+          <div><div class="sym k">K</div><p>Equilibrium constant, plus the conversion you can expect at a chosen pressure.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band">
+      <div class="band-inner">
+        <h2>How the results are checked</h2>
+        <div class="checks">
+          <p><strong>Balanced reactions only.</strong> Every reaction, including ones you type, is checked
+            atom by atom before anything is calculated.</p>
+          <p><strong>Textbook data.</strong> 34 species with ΔH°f, ΔG°f, S° and Cp coefficients, each row
+            listing its source, reference state and valid temperature range.</p>
+          <p><strong>Honest warnings.</strong> The solver says when a Cp correlation is stretched past its
+            range or a liquid is pushed above its boiling point.</p>
+          <p><strong>Tested against known answers.</strong> Worked textbook examples and published
+            equilibrium constants (Moe 1962; Graaf et al. 1986) are reproduced in the
+            <a href="errors.html">error challenge</a>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Assignment 2: Thermodynamic Solver for Reaction Energetics. Chemical Engineering Thermodynamics, Prof. M. Ali Haider.</p>
+    <p>Prepared by Gauri Nanda Salu.</p>
+  </footer>
+
+  <script src="assets/vendor/chart.umd.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/thermo.js"></script>
+  <script>
+  (function () {
+    const db = Thermo.loadSpecies(THERMO_DATA.species);
+    const EXAMPLES = [
+      ["Steam reforming", "CH4 + H2O(g) -> CO + 3 H2"],
+      ["Ammonia synthesis", "N2 + 3 H2 -> 2 NH3"],
+      ["Water-gas shift", "CO + H2O(g) -> CO2 + H2"],
+      ["Boudouard", "2 CO -> C(s) + CO2"],
+    ];
+    const TLO = 298.15, THI = 1500;
+    const chipsEl = document.getElementById("chips");
+    let chart = null;
+
+    function show(i) {
+      [...chipsEl.children].forEach((c, j) => c.setAttribute("aria-pressed", String(i === j)));
+      const [name, eq] = EXAMPLES[i];
+      const rx = new Thermo.Reaction(Thermo.parseReaction(eq, db), db);
+      document.getElementById("demo-eq").textContent = rx.equation();
+      const roots = rx.crossovers(TLO, THI);
+      const lowSideFavoured = rx.dG(TLO) < 0;
+      const res = document.getElementById("demo-result");
+      const note = document.getElementById("demo-note");
+      if (roots.length) {
+        res.textContent = `K = 1 at ${Math.round(roots[0])} K`;
+        note.textContent = lowSideFavoured
+          ? `Products are favoured below ${Math.round(roots[0])} K, because the reaction is exothermic.`
+          : `Products are favoured above ${Math.round(roots[0])} K, because entropy wins at high temperature.`;
+      } else {
+        res.textContent = lowSideFavoured ? "Favoured throughout" : "Unfavoured throughout";
+        note.textContent = "ΔG° keeps the same sign between 298 and 1500 K.";
+      }
+      const pts = [];
+      for (let k = 0; k <= 120; k++) { const T = TLO + (THI - TLO) * k / 120; pts.push({ x: T, y: rx.dG(T) / 1000 }); }
+      const ds = {
+        label: "ΔG° (kJ/mol)", data: pts, borderColor: "#1f5f99", borderWidth: 3, pointRadius: 0,
+        fill: { target: "origin", above: "rgba(0,0,0,0)", below: "rgba(31,95,153,0.14)" },
+      };
+      const marks = { label: "K = 1", data: roots.map(r => ({ x: r, y: 0 })), type: "scatter",
+        pointRadius: 6, pointBackgroundColor: "#1f5f99", pointBorderColor: "#fff", pointBorderWidth: 2 };
+      if (chart) { chart.data.datasets = [ds, marks]; chart.update(); return; }
+      Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+      Chart.defaults.color = "#566878";
+      chart = new Chart(document.getElementById("demo-chart"), {
+        type: "line", data: { datasets: [ds, marks] },
+        options: {
+          maintainAspectRatio: false, animation: { duration: 400 },
+          plugins: { legend: { display: false },
+            tooltip: { callbacks: { label: c => `ΔG° = ${c.parsed.y.toFixed(1)} kJ/mol at ${c.parsed.x.toFixed(0)} K` } } },
+          interaction: { mode: "nearest", axis: "x", intersect: false },
+          scales: {
+            x: { type: "linear", min: 300, max: THI, title: { display: true, text: "Temperature (K)" } },
+            y: { title: { display: true, text: "ΔG° (kJ per mol of reaction)" },
+                 grid: { color: c => c.tick.value === 0 ? "#14273a" : "#e3e9ee" } },
+          },
+        },
+      });
+    }
+
+    EXAMPLES.forEach(([name], i) => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = name;
+      b.addEventListener("click", () => show(i));
+      chipsEl.appendChild(b);
+    });
+    show(0);
+  })();
+  </script>
+</body>
+</html>

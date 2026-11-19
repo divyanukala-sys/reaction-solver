@@ -1,0 +1,35 @@
+id,name,formula,phase,dHf_J_mol,dGf_J_mol,S0_J_molK,A,B_x1e3,C_x1e6,D_x1e-5,Tmin_K,Tmax_K,Tb_K,cp_source,formation_source,entropy_source
+H2(g),Hydrogen,H2,g,0,0,130.68,3.249,0.422,0,0.083,298,3000,,SVA Table C.1,element (reference state),NIST-JANAF
+O2(g),Oxygen,O2,g,0,0,205.15,3.639,0.506,0,-0.227,298,2000,,SVA Table C.1,element (reference state),NIST-JANAF
+N2(g),Nitrogen,N2,g,0,0,191.61,3.280,0.593,0,0.040,298,2000,,SVA Table C.1,element (reference state),NIST-JANAF
+C(s),Carbon (graphite),C,s,0,0,5.74,1.771,0.771,0,-0.867,298,2000,,SVA Table C.2,element (reference state),NIST-JANAF
+CO(g),Carbon monoxide,CO,g,-110525,-137169,197.66,3.376,0.557,0,-0.031,298,2500,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+CO2(g),Carbon dioxide,CO2,g,-393509,-394359,213.79,5.457,1.045,0,-1.157,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+H2O(g),Water (vapour),H2O,g,-241818,-228572,188.83,3.470,1.450,0,0.121,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+H2O(l),Water (liquid),H2O,l,-285830,-237129,69.95,8.712,1.25,-0.18,0,273.15,373.15,373.15,SVA Table C.3,SVA Table C.4,NIST-JANAF
+NH3(g),Ammonia,NH3,g,-46110,-16450,192.77,3.578,3.020,0,-0.186,298,1800,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+CH4(g),Methane,CH4,g,-74520,-50460,186.25,1.702,9.081,-2.164,0,298,1500,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+C2H6(g),Ethane,C2H6,g,-83820,-31855,229.2,1.131,19.225,-5.561,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+C2H4(g),Ethylene,C2H4,g,52510,68460,219.3,1.424,14.394,-4.392,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+C2H2(g),Acetylene,C2H2,g,227480,209970,200.9,6.132,1.952,0,-1.299,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+C3H8(g),Propane,C3H8,g,-104680,-24290,270.3,1.213,28.785,-8.824,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+C3H6(g),Propylene,C3H6,g,19710,62205,267.0,1.637,22.706,-6.915,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+C4H10(g),n-Butane,C4H10,g,-125790,-16570,310.2,1.935,36.915,-11.402,0,298,1500,,SVA Table C.1,SVA Table C.4,NIST WebBook
+C4H8(g),1-Butene,C4H8,g,-540,70340,307.9,1.967,31.630,-9.873,0,298,1500,,SVA Table C.1,SVA Table C.4,TRC tables
+CH3OH(g),Methanol (vapour),CH3OH,g,-200660,-161960,239.9,2.211,12.216,-3.450,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+CH3OH(l),Methanol (liquid),CH3OH,l,-238660,-166270,126.8,13.431,-51.28,131.13,0,273.15,373.15,337.85,SVA Table C.3,SVA Table C.4,CRC Handbook
+C2H5OH(g),Ethanol (vapour),C2H5OH,g,-235100,-168490,281.6,3.518,20.001,-6.002,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+C2H5OH(l),Ethanol (liquid),C2H5OH,l,-277690,-174780,160.7,33.866,-172.60,349.17,0,273.15,373.15,351.44,SVA Table C.3,SVA Table C.4,CRC Handbook
+CH2O(g),Formaldehyde,CH2O,g,-108570,-102530,218.8,2.264,7.022,-1.877,0,298,1500,,SVA Table C.1,SVA Table C.4,CRC Handbook
+CH3CHO(g),Acetaldehyde,CH3CHO,g,-166190,-133000,263.8,1.693,17.978,-6.158,0,298,1000,,SVA Table C.1,dHf SVA Table C.4; dGf CRC Handbook,CRC Handbook
+C2H4O(g),Ethylene oxide,C2H4O,g,-52630,-13010,242.5,-0.385,23.463,-9.296,0,298,1000,,SVA Table C.1,SVA Table C.4,CRC Handbook
+CH3COOH(g),Acetic acid (vapour),CH3COOH,g,-432200,-374200,283.5,1.519,24.427,-9.206,-0.352,298,1000,,Fitted to TRC ideal-gas Cp (max dev 0.6%),CRC Handbook,CRC Handbook
+CH3COOH(l),Acetic acid (liquid),CH3COOH,l,-484500,-389900,159.8,14.81,0,0,0,298.15,298.15,391.05,CRC Handbook (constant Cp at 298 K only),SVA Table C.4,CRC Handbook
+H2O2(g),Hydrogen peroxide (vapour),H2O2,g,-136310,-105600,232.7,4.308,4.372,-1.114,-0.423,298,1500,,Fitted to TRC ideal-gas Cp (max dev 1.1%),CRC Handbook,CRC Handbook
+H2O2(l),Hydrogen peroxide (liquid),H2O2,l,-187780,-120350,109.6,10.72,0,0,0,298.15,298.15,423.35,CRC Handbook (constant Cp at 298 K only),CRC Handbook,CRC Handbook
+NO(g),Nitric oxide,NO,g,90250,86550,210.76,3.387,0.629,0,0.014,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+NO2(g),Nitrogen dioxide,NO2,g,33180,51310,240.06,4.982,1.195,0,-0.792,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+N2O(g),Nitrous oxide,N2O,g,82050,104200,219.96,5.328,1.214,0,-0.928,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+H2S(g),Hydrogen sulfide,H2S,g,-20630,-33560,205.81,3.931,1.490,0,-0.232,298,2300,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+SO2(g),Sulfur dioxide,SO2,g,-296830,-300194,248.22,5.699,0.801,0,-1.015,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
+SO3(g),Sulfur trioxide,SO3,g,-395720,-371060,256.77,8.060,1.056,0,-2.028,298,2000,,SVA Table C.1,SVA Table C.4,NIST-JANAF
