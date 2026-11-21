@@ -24,8 +24,8 @@
     <aside class="panel" aria-label="Inputs">
       <h2>Reaction</h2>
       <div class="field">
-        <label for="preset">Start from a predefined reaction</label>
-        <select id="preset"></select>
+        <span class="label">Pick a predefined reaction</span>
+        <div id="presets"></div>
       </div>
       <div class="field">
         <label for="eq">Reaction (you can edit it)</label>
@@ -38,14 +38,25 @@
       </details>
 
       <h2>Conditions</h2>
-      <div class="row2">
-        <div class="field">
-          <label for="T">Temperature (K)</label>
-          <input id="T" type="number" min="200" max="3000" step="50">
+      <div class="field">
+        <label for="T">Temperature (K)</label>
+        <input id="T" type="number" min="200" max="3000" step="50">
+        <div class="quick" id="T-quick" role="group" aria-label="Quick temperature">
+          <button type="button" class="chip" data-v="298.15">298</button>
+          <button type="button" class="chip" data-v="500">500</button>
+          <button type="button" class="chip" data-v="800">800</button>
+          <button type="button" class="chip" data-v="1000">1000</button>
+          <button type="button" class="chip" data-v="1500">1500</button>
         </div>
-        <div class="field">
-          <label for="P">Pressure (bar)</label>
-          <input id="P" type="number" min="0.01" max="1000" step="1">
+      </div>
+      <div class="field">
+        <label for="P">Pressure (bar)</label>
+        <input id="P" type="number" min="0.01" max="1000" step="1">
+        <div class="quick" id="P-quick" role="group" aria-label="Quick pressure">
+          <button type="button" class="chip" data-v="1">1</button>
+          <button type="button" class="chip" data-v="10">10</button>
+          <button type="button" class="chip" data-v="50">50</button>
+          <button type="button" class="chip" data-v="100">100</button>
         </div>
       </div>
       <div class="field">
@@ -71,10 +82,16 @@
           <button type="button" data-v="third_law">Third-law S°</button>
         </div>
       </div>
-      <p class="small">The page address updates as you change inputs, so you can copy it to share this exact setup.</p>
+      <p class="small">Use “Copy link to this setup” to share exactly what you see.</p>
     </aside>
 
     <main class="results" id="results">
+      <div class="toolbar" role="group" aria-label="Actions">
+        <button type="button" class="btn btn-primary btn-sm" id="act-link">Copy link to this setup</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="act-csv">Download CSV</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="act-reset">Reset</button>
+        <span class="toolbar-status" id="act-status" role="status" aria-live="polite"></span>
+      </div>
       <h1 class="equation" id="eq-title"></h1>
       <p class="note" id="eq-note"></p>
       <div id="messages"></div>
@@ -83,10 +100,10 @@
 
       <div id="tab-area">
         <div class="tabs" role="tablist" id="tablist">
-          <button role="tab" data-tab="trends" id="tab-trends" aria-controls="panel-trends">Temperature trends</button>
-          <button role="tab" data-tab="cp" id="tab-cp" aria-controls="panel-cp">Constant vs Cp(T)</button>
+          <button role="tab" data-tab="trends" id="tab-trends" aria-controls="panel-trends">Plots</button>
+          <button role="tab" data-tab="cp" id="tab-cp" aria-controls="panel-cp">Cp comparison</button>
           <button role="tab" data-tab="sens" id="tab-sens" aria-controls="panel-sens">Sensible heat</button>
-          <button role="tab" data-tab="pressure" id="tab-pressure" aria-controls="panel-pressure">Pressure effect</button>
+          <button role="tab" data-tab="pressure" id="tab-pressure" aria-controls="panel-pressure">Pressure</button>
           <button role="tab" data-tab="method" id="tab-method" aria-controls="panel-method">Method</button>
           <button role="tab" data-tab="data" id="tab-data" aria-controls="panel-data">Species data</button>
         </div>

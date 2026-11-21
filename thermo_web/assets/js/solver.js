@@ -34,44 +34,143 @@
   if (!["gibbs", "third_law"].includes(state.s)) state.s = "gibbs";
   if (!["trends", "cp", "sens", "pressure", "method", "data"].includes(state.tab)) state.tab = "trends";
 
-  function writeURL() {
+  // Which plotted lines are visible (ΔH°, ΔG°, TΔS°). Kept for the session, not in the URL.
+  const show = { H: true, G: true, S: true };
+
+  function queryString() {
     const p = new URLSearchParams();
     for (const k of Object.keys(DEFAULTS)) if (state[k] !== DEFAULTS[k]) p.set(k, state[k]);
-    const qs = p.toString();
+    return p.toString();
+  }
+  function writeURL() {
+    const qs = queryString();
     try { history.replaceState(null, "", qs ? `?${qs}` : location.pathname); } catch (e) { /* not allowed when opened from disk in some browsers */ }
   }
 
   // ---------------------------------------------------------------- controls
-  const preset = $("preset");
-  preset.innerHTML = `<option value="">Your own reaction</option>` +
-    REACTIONS.map((r, i) => `<option value="${i}">${esc(r.name)}</option>`).join("");
+  // Predefined reactions as buttons, grouped by type.
+  const GROUPS = ["Combustion", "Syngas and reforming", "Synthesis", "Dehydrogenation", "Other"];
+  function groupOf(r) {
+    const n = r.name;
+    if (/^TEST/i.test(n)) return "Other";
+    if (/combustion/i.test(n)) return "Combustion";
+    if (/reforming|shift|partial oxidation/i.test(n)) return "Syngas and reforming";
+    if (/dehydrogenation/i.test(n)) return "Dehydrogenation";
+    if (/synthesis|hydrogenation|methanation|sabatier|hydration|carbonylation/i.test(n)) return "Synthesis";
+    return "Other";
+  }
+  const current = REACTIONS.find(r => r.equation === state.eq);
+  $("presets").innerHTML = GROUPS.map(g => {
+    const items = REACTIONS.map((r, i) => [r, i]).filter(([r]) => groupOf(r) === g);
+    if (!items.length) return "";
+    const open = current && groupOf(current) === g;
+    return `<details class="preset-group"${open ? " open" : ""}><summary>${g} <span class="count">${items.length}</span></summary><div class="quick">` +
+      items.map(([r, i]) => `<button type="button" class="chip" data-i="${i}" title="${esc(r.equation)}">${esc(r.name)}</button>`).join("") +
+      `</div></details>`;
+  }).join("");
   $("species-list").innerHTML = [...db.values()]
     .map(s => `<div><code>${esc(s.id)}</code> ${esc(s.name)}</div>`).join("");
 
   function syncPreset() {
-    const i = REACTIONS.findIndex(r => r.equation === state.eq);
-    preset.value = i >= 0 ? String(i) : "";
+    $("presets").querySelectorAll("button").forEach(b =>
+      b.setAttribute("aria-pressed", String(REACTIONS[+b.dataset.i].equation === state.eq)));
   }
-  $("eq").value = state.eq; $("T").value = state.T; $("P").value = state.P;
-  $("tlo").value = state.tlo; $("thi").value = state.thi;
-  syncPreset();
-
+  function syncQuick() {
+    for (const id of ["T", "P"]) {
+      $(`${id}-quick`).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === state[id])));
+    }
+  }
   function setSeg(id, value) {
     $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === value)));
   }
-  setSeg("cp", state.cp); setSeg("sroute", state.s);
+  function syncControls() {
+    $("eq").value = state.eq; $("T").value = state.T; $("P").value = state.P;
+    $("tlo").value = state.tlo; $("thi").value = state.thi;
+    syncPreset(); syncQuick(); setSeg("cp", state.cp); setSeg("sroute", state.s);
+  }
+  syncControls();
 
   let timer = null;
   const later = () => { clearTimeout(timer); timer = setTimeout(update, 250); };
 
-  preset.addEventListener("change", () => {
-    if (preset.value === "") return;
-    state.eq = REACTIONS[+preset.value].equation; $("eq").value = state.eq; update();
+  $("presets").addEventListener("click", e => {
+    const b = e.target.closest("button[data-i]");
+    if (!b) return;
+    state.eq = REACTIONS[+b.dataset.i].equation; $("eq").value = state.eq; syncPreset(); update();
   });
   $("eq").addEventListener("input", () => { state.eq = $("eq").value; syncPreset(); later(); });
   for (const id of ["T", "P", "tlo", "thi"]) {
-    $(id).addEventListener("input", () => { state[id] = parseFloat($(id).value); later(); });
+    $(id).addEventListener("input", () => { state[id] = parseFloat($(id).value); syncQuick(); later(); });
   }
+  for (const id of ["T", "P"]) {
+    $(`${id}-quick`).addEventListener("click", e => {
+      const v = e.target.closest("button")?.dataset.v;
+      if (v === undefined) return;
+      state[id] = +v; $(id).value = v; syncQuick(); update();
+    });
+  }
+
+  // ---------------------------------------------------------------- actions
+  let statusTimer = null;
+  function flash(msg) {
+    $("act-status").textContent = msg;
+    clearTimeout(statusTimer); statusTimer = setTimeout(() => { $("act-status").textContent = ""; }, 3000);
+  }
+  $("act-link").addEventListener("click", async () => {
+    const qs = queryString();
+    const url = location.href.split(/[?#]/)[0] + (qs ? `?${qs}` : "");
+    try {
+      await navigator.clipboard.writeText(url);
+      flash("Link copied.");
+    } catch (e) {
+      // Clipboard API unavailable (e.g. page opened from disk): fall back to a hidden text box.
+      const ta = document.createElement("textarea");
+      ta.value = url; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e2) { /* ignore */ }
+      ta.remove();
+      flash(ok ? "Link copied." : `Copy this link: ${url}`);
+    }
+  });
+  $("act-csv").addEventListener("click", () => {
+    if (!rx) return;
+    const r = rx, m = state.cp, s = state.s;
+    const Ts = linspace(state.tlo, state.thi, 300);
+    const rows = ["T_K,dH_kJ_mol,dS_J_molK,dG_kJ_mol,lnK"].concat(Ts.map(t =>
+      [t, kj(r.dH(t, m)), r.dS(t, m, s), kj(r.dG(t, m, s)), r.lnK(t, m, s)].map(v => +v.toPrecision(10)).join(",")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv" }));
+    a.download = "reaction_sweep.csv"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("act-reset").addEventListener("click", () => {
+    Object.assign(state, DEFAULTS);
+    show.H = show.G = show.S = true;
+    syncControls(); update();
+    flash("Reset to defaults.");
+  });
+
+  // ---------------------------------------------------------------- line toggles
+  const LINES = { H: ["ΔH°", "h"], G: ["ΔG°", "g"], S: ["TΔS°", "s"] };
+  const toggles = qs =>
+    `<div class="line-toggles" role="group" aria-label="Show or hide lines"><span class="label">Show lines:</span>` +
+    qs.map(q => `<button type="button" class="line-toggle ${LINES[q][1]}" data-q="${q}" aria-pressed="${show[q]}">${LINES[q][0]}</button>`).join("") +
+    `</div>`;
+  function toggleLine(q) {
+    show[q] = !show[q];
+    for (const c of Object.values(charts)) {
+      let touched = false;
+      c.data.datasets.forEach((d, i) => { if (d.qty) { c.setDatasetVisibility(i, show[d.qty]); touched = true; } });
+      if (touched) c.update();
+    }
+    document.querySelectorAll(".line-toggle").forEach(b => b.setAttribute("aria-pressed", String(show[b.dataset.q])));
+  }
+  $("tab-area").addEventListener("click", e => {
+    const q = e.target.closest(".line-toggle")?.dataset.q;
+    if (q) toggleLine(q);
+  });
+
   $("cp").addEventListener("click", e => { const v = e.target.closest("button")?.dataset.v; if (v) { state.cp = v; setSeg("cp", v); update(); } });
   $("sroute").addEventListener("click", e => { const v = e.target.closest("button")?.dataset.v; if (v) { state.s = v; setSeg("sroute", v); update(); } });
 
@@ -101,7 +200,9 @@
 
   const series = (xs, f) => xs.map(x => ({ x, y: f(x) }));
   function line(label, data, color, extra = {}) {
-    return { label, data, borderColor: color, backgroundColor: color, borderWidth: 3, pointRadius: 0, ...extra };
+    const d = { label, data, borderColor: color, backgroundColor: color, borderWidth: 3, pointRadius: 0, ...extra };
+    if (d.qty) d.hidden = !show[d.qty];
+    return d;
   }
   function vline(x, datasets, label) {
     const ys = datasets.flatMap(d => d.data.map(p => p.y)).filter(Number.isFinite);
@@ -118,7 +219,16 @@
         maintainAspectRatio: false, animation: false,
         interaction: { mode: "index", intersect: false },
         plugins: {
-          legend: { display: legend, labels: { filter: (item, data) => !data.datasets[item.datasetIndex].helper } },
+          legend: {
+            display: legend,
+            labels: { filter: (item, data) => !data.datasets[item.datasetIndex].helper },
+            // Clicking a legend entry for ΔH°/ΔG°/TΔS° goes through the same toggle as the buttons.
+            onClick: (e, item, lg) => {
+              const d = lg.chart.data.datasets[item.datasetIndex];
+              if (d.qty) toggleLine(d.qty);
+              else Chart.defaults.plugins.legend.onClick.call(lg, e, item, lg);
+            },
+          },
           tooltip: {
             filter: item => !item.dataset.helper,
             callbacks: {
@@ -144,6 +254,7 @@
     const msgs = [];
     const area = { numbers: $("numbers"), tabs: $("tab-area") };
     rx = null;
+    $("act-csv").disabled = true;
 
     let stoich;
     try {
@@ -185,6 +296,7 @@
     }
 
     rx = r;
+    $("act-csv").disabled = false;
     msgs.push(`<div class="msg ok">Element balance checked: ${Object.keys(bal).map(el => `${el} 0`).join(", ")}.</div>`);
     r.warnings(Math.min(tlo, T), Math.max(thi, T), state.cp).forEach(w => msgs.push(`<div class="msg warn">${esc(w)}</div>`));
     if (state.cp === "constant") {
@@ -283,15 +395,14 @@
     const Ts = linspace(tlo, thi, 300);
 
     if (state.tab === "trends") {
-      $("panel-trends").innerHTML =
+      $("panel-trends").innerHTML = toggles(["H", "G", "S"]) +
         `<div class="chart-box"><canvas id="c-main" aria-label="Enthalpy, Gibbs energy and T times entropy of reaction against temperature"></canvas></div>` +
         `<div class="two"><div class="chart-box short"><canvas id="c-lnk" aria-label="ln K against temperature"></canvas></div>` +
-        `<div class="chart-box short"><canvas id="c-ds" aria-label="Entropy of reaction against temperature"></canvas></div></div>` +
-        `<p style="margin-top:1rem"><button class="btn btn-secondary" type="button" id="dl">Download these values (CSV)</button></p>`;
+        `<div class="chart-box short"><canvas id="c-ds" aria-label="Entropy of reaction against temperature"></canvas></div></div>`;
       const ds = [
-        line("ΔH° (kJ/mol)", series(Ts, t => kj(r.dH(t, m))), COL.H),
-        line("ΔG° (kJ/mol)", series(Ts, t => kj(r.dG(t, m, s))), COL.G),
-        line("TΔS° (kJ/mol)", series(Ts, t => kj(t * r.dS(t, m, s))), COL.S, { borderDash: [2, 4], borderWidth: 2.5 }),
+        line("ΔH° (kJ/mol)", series(Ts, t => kj(r.dH(t, m))), COL.H, { qty: "H" }),
+        line("ΔG° (kJ/mol)", series(Ts, t => kj(r.dG(t, m, s))), COL.G, { qty: "G" }),
+        line("TΔS° (kJ/mol)", series(Ts, t => kj(t * r.dS(t, m, s))), COL.S, { qty: "S", borderDash: [2, 4], borderWidth: 2.5 }),
       ];
       const roots = r.crossovers(tlo, thi, m, s);
       const all = [...ds, vline(T, ds, `T = ${T} K`)];
@@ -302,19 +413,12 @@
       draw("c-lnk", [...lk, vline(T, lk, "T")], { xTitle: "Temperature (K)", yTitle: "ln K", legend: false, xMin: tlo, xMax: thi });
       const dsS = [line("ΔS° (J/mol·K)", series(Ts, t => r.dS(t, m, s)), COL.S)];
       draw("c-ds", [...dsS, vline(T, dsS, "T")], { xTitle: "Temperature (K)", yTitle: "ΔS° (J/mol·K)", legend: false, xMin: tlo, xMax: thi });
-      $("dl").addEventListener("click", () => {
-        const rows = ["T_K,dH_kJ_mol,dS_J_molK,dG_kJ_mol,lnK"].concat(Ts.map(t =>
-          [t, kj(r.dH(t, m)), r.dS(t, m, s), kj(r.dG(t, m, s)), r.lnK(t, m, s)].map(v => +v.toPrecision(10)).join(",")));
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv" }));
-        a.download = "reaction_sweep.csv"; a.click(); URL.revokeObjectURL(a.href);
-      });
     }
 
     if (state.tab === "cp") {
       const Tcs = [...new Set([500, 1000, 1500, T])].sort((a, b) => a - b);
       $("panel-cp").innerHTML =
-        `<p>How much does assuming a constant heat capacity change the answer?</p>` +
+        `<p>How much does assuming a constant heat capacity change the answer?</p>` + toggles(["H", "G"]) +
         `<div class="chart-box"><canvas id="c-cp" aria-label="Constant versus temperature-dependent heat capacity"></canvas></div>` +
         `<div class="table-wrap" style="margin-top:1rem"><table class="data"><thead><tr><th>T (K)</th><th>ΔH° Cp(T)</th><th>ΔH° constant</th><th>ΔH difference</th><th>ΔG° Cp(T)</th><th>ΔG° constant</th><th>ΔG difference</th><th>K constant ÷ K Cp(T)</th></tr></thead><tbody>` +
         Tcs.map(t => {
@@ -323,10 +427,10 @@
         }).join("") +
         `</tbody></table></div><p class="small">All energies in kJ/mol. ΔCp°(298.15 K) = ${num(r.dCp(T0))} J/(mol·K); ΔCp°(${T} K) = ${num(r.dCp(T))} J/(mol·K).</p>`;
       draw("c-cp", [
-        line("ΔH°, Cp°(T)", series(Ts, t => kj(r.dH(t, "variable"))), COL.H),
-        line("ΔH°, constant Cp°", series(Ts, t => kj(r.dH(t, "constant"))), COL.H, { borderDash: [7, 5], borderWidth: 2.5 }),
-        line("ΔG°, Cp°(T)", series(Ts, t => kj(r.dG(t, "variable", s))), COL.G),
-        line("ΔG°, constant Cp°", series(Ts, t => kj(r.dG(t, "constant", s))), COL.G, { borderDash: [7, 5], borderWidth: 2.5 }),
+        line("ΔH°, Cp°(T)", series(Ts, t => kj(r.dH(t, "variable"))), COL.H, { qty: "H" }),
+        line("ΔH°, constant Cp°", series(Ts, t => kj(r.dH(t, "constant"))), COL.H, { qty: "H", borderDash: [7, 5], borderWidth: 2.5 }),
+        line("ΔG°, Cp°(T)", series(Ts, t => kj(r.dG(t, "variable", s))), COL.G, { qty: "G" }),
+        line("ΔG°, constant Cp°", series(Ts, t => kj(r.dG(t, "constant", s))), COL.G, { qty: "G", borderDash: [7, 5], borderWidth: 2.5 }),
       ], { xTitle: "Temperature (K)", yTitle: "kJ per mol of reaction", xMin: tlo, xMax: thi });
     }
 

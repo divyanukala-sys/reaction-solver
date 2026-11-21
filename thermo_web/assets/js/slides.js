@@ -90,7 +90,6 @@
     <div class="kicker" style="color:#9fb2c2">Assignment 2: Thermodynamic Solver for Reaction Energetics</div>
     <h1>Stress-testing an AI-built reaction solver</h1>
     <p>Five required checks, a comparison with published equilibrium data, and the data errors the AI made while building it.</p>
-    <div class="meta">Gauri Nanda Salu &nbsp;|&nbsp; Chemical Engineering Thermodynamics, Prof. M. Ali Haider</div>
     <svg class="gline" viewBox="0 0 340 170" aria-hidden="true">
       <line x1="0" y1="${y0}" x2="340" y2="${y0}" stroke="#5b7790" stroke-width="1.5" stroke-dasharray="5 5"/>
       <path d="${path}" fill="none" stroke="#ffffff" stroke-width="3"/>
