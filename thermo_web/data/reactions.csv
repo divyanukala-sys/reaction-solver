@@ -32,4 +32,4 @@ H2S combustion,H2S + 3/2 O2 -> SO2 + H2O(g),First step of the Claus process.
 Boudouard reaction,2 CO -> C(s) + CO2,Carbon deposition at low temperature.
 Methane cracking,CH4 -> C(s) + 2 H2,Turquoise hydrogen route.
 Hydrogen peroxide decomposition,2 H2O2(l) -> 2 H2O(l) + O2,Liquid-phase; only constant-Cp data for H2O2(l).
-TEST: unbalanced methane combustion,CH4 + O2 -> CO2 + H2O(g),Deliberately unbalanced. The solver must refuse it.
+Unbalanced methane combustion,CH4 + O2 -> CO2 + H2O(g),

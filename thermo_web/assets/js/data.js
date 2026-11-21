@@ -816,9 +816,9 @@
    "note": "Liquid-phase; only constant-Cp data for H2O2(l)."
   },
   {
-   "name": "TEST: unbalanced methane combustion",
+   "name": "Unbalanced methane combustion",
    "equation": "CH4 + O2 -> CO2 + H2O(g)",
-   "note": "Deliberately unbalanced. The solver must refuse it."
+   "note": ""
   }
  ]
 };

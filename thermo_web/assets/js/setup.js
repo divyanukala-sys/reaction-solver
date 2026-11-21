@@ -23,7 +23,7 @@
   const GROUPS = ["Combustion", "Syngas and reforming", "Synthesis", "Dehydrogenation", "Other"];
   function groupOf(r) {
     const n = r.name;
-    if (/^TEST/i.test(n)) return "Other";
+    if (/unbalanced/i.test(n)) return "Other"; // deliberately unbalanced example, not a real process
     if (/combustion/i.test(n)) return "Combustion";
     if (/reforming|shift|partial oxidation/i.test(n)) return "Syngas and reforming";
     if (/dehydrogenation/i.test(n)) return "Dehydrogenation";

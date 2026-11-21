@@ -346,7 +346,8 @@
     }
     $("eq-title").textContent = r.equation();
     const pre = REACTIONS.find(x => x.equation === state.eq);
-    $("eq-note").textContent = pre ? pre.note : "";
+    const note = (pre && pre.note || "").trim();
+    $("eq-note").textContent = note; $("eq-note").hidden = !note; // no empty line when a reaction has no note
     if (!r.isBalanced()) {
       const off = Object.entries(r.elementBalance()).filter(([, v]) => Math.abs(v) > 1e-9);
       return fail(`<div class="msg err">This reaction is not balanced, so there is nothing to plot. Net atoms (products − reactants): ` +

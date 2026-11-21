@@ -48,7 +48,7 @@
   const GROUPS = ["Combustion", "Syngas and reforming", "Synthesis", "Dehydrogenation", "Other"];
   function groupOf(r) {
     const n = r.name;
-    if (/^TEST/i.test(n)) return "Other";
+    if (/unbalanced/i.test(n)) return "Other"; // deliberately unbalanced example, not a real process
     if (/combustion/i.test(n)) return "Combustion";
     if (/reforming|shift|partial oxidation/i.test(n)) return "Syngas and reforming";
     if (/dehydrogenation/i.test(n)) return "Dehydrogenation";
@@ -127,13 +127,14 @@
       stoich = Thermo.parseReaction(state.eq, db);
     } catch (e) {
       $("eq-title").textContent = "Reaction not recognised";
-      $("eq-note").textContent = "";
+      $("eq-note").textContent = ""; $("eq-note").hidden = true;
       return fail(`<div class="msg err">Can’t read this reaction. ${esc(e.message)}</div>`);
     }
     const r = new Thermo.Reaction(stoich, db);
     $("eq-title").textContent = r.equation();
     const pre = REACTIONS.find(x => x.equation === state.eq);
-    $("eq-note").textContent = pre ? pre.note : "";
+    const note = (pre && pre.note || "").trim();
+    $("eq-note").textContent = note; $("eq-note").hidden = !note; // no empty line when a reaction has no note
 
     const bal = r.elementBalance();
     if (!r.isBalanced()) {
