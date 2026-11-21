@@ -19,10 +19,10 @@
   const ubText = Object.entries(ub).filter(([, v]) => Math.abs(v) > 1e-9)
     .map(([el, v]) => `${el} ${v > 0 ? "+" : "−"}${Math.abs(v)}`).join(", ");
   const inputTests = [
-    ["CH4 + Xe -> CO2", "unknown species"],
-    ["H2 + 1/2 O2 -> H2O", "fraction as coefficient"],
-    ["CH₄ + 2 O₂ → CO₂ + 2 H₂O", "pasted subscripts and arrow"],
-    ["methane + 2 O2 -> CO2 + 2 H2O", "species typed by name"],
+    ["CH4 + Xe -> CO2", "a species that isn’t in the database"],
+    ["H2 + 1/2 O2 -> H2O", "a fraction in front of a species"],
+    ["CH₄ + 2 O₂ → CO₂ + 2 H₂O", "text pasted with ₂ and →"],
+    ["methane + 2 O2 -> CO2 + 2 H2O", "a species written as a word"],
   ].map(([eq, what]) => {
     try {
       const r = rx(eq);
@@ -43,7 +43,6 @@
     return { name, eq, dcp298: r.dCp(T0), dcp1000: r.dCp(T), hv, hc, dH: hc - hv, dG: gc - gv, kr: Math.exp(-(gc - gv) / (R * T)) };
   });
   const absErr = cpRows.map(x => Math.abs(kj(x.dH)));
-  const kFactor = Math.max(...cpRows.map(x => Math.max(x.kr, 1 / x.kr)));
   const shrink = cpRows.map(x => x.dcp298 / x.dcp1000);
 
   // ------------------------------------------------------------- check 3
@@ -86,10 +85,11 @@
   const gmin = Math.min(...gl), gmax = Math.max(...gl);
   const path = gl.map((g, i) => `${i ? "L" : "M"}${(i / 59 * 340).toFixed(1)},${(170 - (g - gmin) / (gmax - gmin) * 160 - 5).toFixed(1)}`).join(" ");
   const y0 = (170 - (0 - gmin) / (gmax - gmin) * 160 - 5).toFixed(1);
+  const inShort = text => `<div class="takeaway"><strong>In short:</strong> ${text}</div>`;
   S.push(`<section class="slide title">
     <div class="kicker" style="color:#9fb2c2">Assignment 2: Thermodynamic Solver for Reaction Energetics</div>
-    <h1>Stress-testing an AI-built reaction solver</h1>
-    <p>Five required checks, a comparison with published equilibrium data, and the data errors the AI made while building it.</p>
+    <h1>Can an AI-built reaction solver be trusted?</h1>
+    <p>Five checks on the solver, a comparison with published data, and the mistakes the AI made while building it.</p>
     <svg class="gline" viewBox="0 0 340 170" aria-hidden="true">
       <line x1="0" y1="${y0}" x2="340" y2="${y0}" stroke="#5b7790" stroke-width="1.5" stroke-dasharray="5 5"/>
       <path d="${path}" fill="none" stroke="#ffffff" stroke-width="3"/>
@@ -99,75 +99,79 @@
 
   // Check 1
   S.push(`<section class="slide">
-    <div class="kicker">Check 1 of 5: stoichiometry</div>
-    <h2>An unbalanced reaction is refused, not calculated</h2>
+    <div class="kicker">Check 1 of 5: Is the reaction balanced?</div>
+    <h2>Unbalanced reactions are rejected, not calculated</h2>
+    ${inShort("if the atoms on the two sides don’t match, any energy number would be meaningless. So the solver stops and shows what is missing.")}
     <div class="body cols">
       <div>
-        <p>Input, with the oxygen and water coefficients left out:</p>
+        <p>Input: methane burning, with the numbers in front of O₂ and H₂O left out:</p>
         <div class="inputbox">${rx(unbalancedEq).equation()}</div>
-        <div class="refusal">Solver response: “This reaction is not balanced, so no thermodynamic results are shown.” Net atoms (products − reactants): ${ubText}.</div>
+        <div class="refusal">The solver said: “This reaction is not balanced, so no thermodynamic results are shown.” It also listed the atoms that don’t match (products minus reactants): ${ubText}.</div>
         <p style="margin-top:1em"><span class="verdict-chip v-pass">Pass</span></p>
       </div>
       <div>
         <p>Other inputs tried:</p>
-        <table class="data"><thead><tr><th class="left">Input</th><th class="left">Tests</th><th class="left">Result</th></tr></thead><tbody>
+        <table class="data"><thead><tr><th class="left">Input</th><th class="left">What it tests</th><th class="left">What happened</th></tr></thead><tbody>
         ${inputTests.map(([eq, what, res]) => `<tr><td class="left">${eq.replace(/</g, "&lt;")}</td><td class="left">${what}</td><td class="left">${res}</td></tr>`).join("")}
         </tbody></table>
       </div>
     </div>
-    ${foot("Every reaction is checked atom by atom before any calculation.", link({ eq: unbalancedEq }))}
+    ${foot("Every reaction is checked atom by atom before anything is calculated.", link({ eq: unbalancedEq }))}
   </section>`);
 
   // Check 2
   S.push(`<section class="slide">
-    <div class="kicker">Check 2 of 5: heat-capacity assumption</div>
-    <h2>Constant Cp° at 1000 K is off by ${num(Math.min(...absErr), 0)}–${num(Math.max(...absErr), 0)} kJ/mol</h2>
-    <div class="body cols-wide">
+    <div class="kicker">Check 2 of 5: Can heat capacity be treated as constant?</div>
+    <h2>Keeping Cp° fixed gives answers ${num(Math.min(...absErr), 0)}–${num(Math.max(...absErr), 0)} kJ/mol off at 1000 K</h2>
+    ${inShort("heat capacity (Cp°) changes with temperature. Using its 298 K value everywhere is a common shortcut that goes wrong at high temperature.")}
+    <div class="body cols-wide" style="grid-template-columns:1.5fr 1fr">
       <div>
-        <table class="data"><thead><tr><th class="left">Reaction</th><th>ΔCp° 298 K</th><th>ΔCp° 1000 K</th><th>ΔH° Cp(T)</th><th>ΔH° const.</th><th>Error in ΔH°</th><th>K ratio</th></tr></thead><tbody>
-        ${cpRows.map(x => `<tr><td class="left">${x.name}</td><td>${num(x.dcp298, 1)}</td><td>${num(x.dcp1000, 1)}</td><td>${num(kj(x.hv), 1)}</td><td>${num(kj(x.hc), 1)}</td><td>${sgn(kj(x.dH), 1)}</td><td>${num(x.kr, 2)}</td></tr>`).join("")}
+        <table class="data"><thead><tr><th class="left">Reaction</th><th>ΔH°, Cp° varies</th><th>ΔH°, Cp° fixed</th><th>Error</th><th>K off by</th></tr></thead><tbody>
+        ${cpRows.map(x => `<tr><td class="left">${x.name}</td><td>${num(kj(x.hv), 1)}</td><td>${num(kj(x.hc), 1)}</td><td>${sgn(kj(x.dH), 1)}</td><td>×${num(Math.max(x.kr, 1 / x.kr), 2)}</td></tr>`).join("")}
         </tbody></table>
-        <p class="small" style="font-size:1.05cqw;margin-top:.5em">ΔCp° in J/(mol·K), ΔH° in kJ/mol. K ratio = K(constant Cp°) ÷ K(Cp°(T)).</p>
-        <p style="margin-top:.8em">ΔCp° itself shrinks by a factor of ${num(Math.min(...shrink), 0)} to ${num(Math.max(...shrink), 0)} between 298 and 1000 K, so freezing it at its 298 K value overshoots the sensible-heat correction. The equilibrium constant moves by up to a factor of ${num(kFactor, 1)}.</p>
+        <p class="small" style="font-size:1.05cqw;margin-top:.5em">At 1000 K, in kJ/mol. “Fixed” uses the 298 K value. “K off by” = how many times too big or small K comes out.</p>
+        <p style="margin-top:.5em"><strong>Why:</strong> ΔCp° is ${num(Math.min(...shrink), 0)}–${num(Math.max(...shrink), 0)} times smaller at 1000 K than at 298 K, so the 298 K value overstates the correction.</p>
       </div>
-      <div class="chart"><canvas id="ch-cp" aria-label="Steam reforming heat of reaction, constant versus temperature-dependent Cp"></canvas></div>
+      <div class="chart"><canvas id="ch-cp" aria-label="Steam reforming heat of reaction, fixed versus temperature-dependent Cp"></canvas></div>
     </div>
-    ${foot('<span class="verdict-chip v-warn">Large effect: use Cp°(T) above about 500 K</span>', link({ eq: "CH4 + H2O(g) -> CO + 3 H2", T: 1000, tab: "cp" }))}
+    ${foot('<span class="verdict-chip v-warn">Big effect: let Cp° change with T above about 500 K</span>', link({ eq: "CH4 + H2O(g) -> CO + 3 H2", T: 1000, tab: "cp" }))}
   </section>`);
 
   // Check 3
   S.push(`<section class="slide">
-    <div class="kicker">Check 3 of 5: physical state</div>
-    <h2>Methane combustion: H₂O(l) versus H₂O(g)</h2>
+    <div class="kicker">Check 3 of 5: Does it matter whether water is liquid or steam?</div>
+    <h2>Burning methane: liquid water vs steam</h2>
+    ${inShort("making liquid water releases more heat than making steam, because no heat is spent boiling it. The solver gets this right, and warns when liquid water is physically impossible.")}
     <div class="body cols">
       <div>
-        <table class="data"><thead><tr><th>T (K)</th><th>ΔH°, H₂O(l)</th><th>ΔH°, H₂O(g)</th><th>ΔG°, H₂O(l)</th><th>ΔG°, H₂O(g)</th></tr></thead><tbody>
+        <table class="data"><thead><tr><th>T (K)</th><th>ΔH°, liquid water</th><th>ΔH°, steam</th><th>ΔG°, liquid water</th><th>ΔG°, steam</th></tr></thead><tbody>
         ${stateRows.map(x => `<tr><td>${x.T}</td><td>${num(kj(x.hl))}</td><td>${num(kj(x.hg))}</td><td>${num(kj(x.gl))}</td><td>${num(kj(x.gg))}</td></tr>`).join("")}
         </tbody></table>
-        <p class="small" style="font-size:1.05cqw;margin-top:.5em">kJ per mol CH₄, CH₄ + 2 O₂ → CO₂ + 2 H₂O.</p>
+        <p class="small" style="font-size:1.05cqw;margin-top:.5em">kJ per mol of methane, for CH₄ + 2 O₂ → CO₂ + 2 H₂O.</p>
       </div>
       <ul>
-        <li><strong>298 K:</strong> the two answers differ by ${num(2 * hvap298)} kJ, which is 2 × ${num(hvap298)} kJ/mol, the enthalpy of vaporisation of water. This is the HHV versus LHV gap.</li>
-        <li><strong>373 K:</strong> the two ΔG° values agree to ${num(gGap373, 2)} kJ/mol, as they must at the normal boiling point. A built-in consistency check that passes.</li>
-        <li><strong>800 K:</strong> the liquid route still returns a number, but liquid water cannot exist above its critical point (647 K). The solver flags the liquid above 373 K; the number should not be used.</li>
+        <li><strong>At 298 K:</strong> the liquid case releases ${num(2 * hvap298)} kJ more. That is exactly the heat needed to boil 2 mol of water (2 × ${num(hvap298)} kJ/mol). Engineers call the two results the higher and lower heating values (HHV and LHV).</li>
+        <li><strong>At 373 K:</strong> water boils here, so liquid and steam are equally stable. The two ΔG° values agree to within ${num(gGap373, 2)} kJ/mol, as they should.</li>
+        <li><strong>At 800 K:</strong> water cannot be liquid this hot (not above 647 K at any pressure). The solver still gives a number, but warns that the liquid is above its boiling point, so the result should not be used.</li>
       </ul>
     </div>
-    ${foot('<span class="verdict-chip v-pass">Pass, with a warning shown for the liquid case</span>', link({ eq: "CH4 + 2 O2 -> CO2 + 2 H2O(l)", T: 800 }))}
+    ${foot('<span class="verdict-chip v-pass">Pass, with a warning for the impossible liquid case</span>', link({ eq: "CH4 + 2 O2 -> CO2 + 2 H2O(l)", T: 800 }))}
   </section>`);
 
   // Check 4
   S.push(`<section class="slide">
-    <div class="kicker">Check 4 of 5: validity of the Cp correlations</div>
-    <h2>Warnings appear when a correlation is stretched</h2>
+    <div class="kicker">Check 4 of 5: Are the heat-capacity formulas used where they are valid?</div>
+    <h2>The solver warns when a formula is pushed past its range</h2>
+    ${inShort("each Cp° formula was fitted to data over a certain temperature range. Outside that range it is only a guess, so the solver says so.")}
     <div class="body cols-wide">
-      <table class="data"><thead><tr><th class="left">Case</th><th>T (K)</th><th class="left">Warning shown</th></tr></thead><tbody>
+      <table class="data"><thead><tr><th class="left">Case</th><th>T (K)</th><th class="left">Warning the solver shows</th></tr></thead><tbody>
       ${warnExamples.map(([name, eq, T, ws]) => `<tr><td class="left">${name}</td><td>${T}</td><td class="left">${ws.map(w => w.replace(/ Results outside.*$| A liquid at 1 bar.*$/, "").replace(/, so its Cp is held.*$/, ".")).join("<br>")}</td></tr>`).join("")}
       </tbody></table>
       <div>
-        <p><strong>A limit warnings cannot catch.</strong></p>
+        <p><strong>What warnings can’t catch</strong></p>
         <p class="big">${num(etoh, 1)} vs ${num(ETOH_TRC, 1)}</p>
-        <p>Cp of ethanol vapour at 298 K, J/(mol·K): textbook correlation versus TRC data. The correlation is ${num(100 * (etoh / ETOH_TRC - 1), 0)}% high at the bottom of its own valid range, so “inside the range” does not mean “accurate”.</p>
-        <p>The solver also cross-checks ΔG°f against ΔH°f and S° and warns if they disagree by more than 1 kJ/mol.</p>
+        <p>Heat capacity of ethanol vapour at 298 K, in J/(mol·K): the textbook formula vs measured data (TRC). The formula is ${num(100 * (etoh / ETOH_TRC - 1), 0)}% too high, even though 298 K is inside its valid range. “Inside the range” does not guarantee “accurate”.</p>
+        <p>The solver also checks that each species’ ΔG°f, ΔH°f and S° agree with each other, and warns if they are more than 1 kJ/mol apart.</p>
       </div>
     </div>
     ${foot('<span class="verdict-chip v-pass">Pass, with one blind spot</span>', link({ eq: "C2H4 + 1/2 O2 -> C2H4O", T: 1200 }))}
@@ -175,37 +179,39 @@
 
   // Check 5
   S.push(`<section class="slide">
-    <div class="kicker">Check 5 of 5: comparison with published work</div>
-    <h2>K agrees with published correlations to within ${num(maxDG, 1)} kJ/mol in ΔG°</h2>
+    <div class="kicker">Check 5 of 5: Does it match published results?</div>
+    <h2>Within ${num(maxDG, 1)} kJ/mol of published equilibrium data</h2>
+    ${inShort("the solver’s equilibrium constant K is compared with formulas fitted to lab data. K is very sensitive, so each gap is also shown as an energy, where it is small.")}
     <div class="body cols-wide">
       <div>
         <table class="data"><thead><tr><th class="left">Reaction (source)</th>${pubTs.map(T => `<th>${T} K</th>`).join("")}</tr></thead><tbody>
         ${pub.map((p, i) => `<tr><td class="left">${p.name}<br><span class="small" style="font-size:1cqw">${p.src}</span></td>${pubCells[i].map(c => `<td>${sgn(c.pct, 0)}%<br><span class="small" style="font-size:1cqw">${sgn(c.dG, 2)} kJ</span></td>`).join("")}</tr>`).join("")}
         </tbody></table>
-        <p class="small" style="font-size:1.05cqw;margin-top:.5em">Top: K(solver) ÷ K(published) − 1. Below: the same gap as ΔG°(published) − ΔG°(solver), kJ/mol.</p>
-        <p style="margin-top:.6em;font-size:1.32cqw">A gap of 25% in K is only about 1 kJ/mol in ΔG°. Graaf and Winkelman (2016) report that a 0.5% change in methanol’s ΔG°f moves its K by about 33%. The published correlations also disagree with each other: Moe’s water-gas shift and Graaf’s reverse shift differ by ${num(Math.abs(moeVsGraaf), 0)}% at 500 K.</p>
+        <p class="small" style="font-size:1.05cqw;margin-top:.5em">Top: % gap between the solver’s K and the published K. Bottom: the same gap as energy, ΔG°(published) − ΔG°(solver).</p>
+        <p style="margin-top:.5em;font-size:1.32cqw">A 25% gap in K is only about 1 kJ/mol. A 0.5% change in methanol’s ΔG°f moves its K by about 33% (Graaf &amp; Winkelman, 2016). The published sources also disagree with each other by ${num(Math.abs(moeVsGraaf), 0)}% at 500 K.</p>
       </div>
       <div class="chart"><canvas id="ch-pub" aria-label="ln K versus temperature, solver against published correlations"></canvas></div>
     </div>
     <div class="refs">Moe, J. M. (1962) Chem. Eng. Prog. 58, 33–36. Graaf, G. H. et al. (1986) Chem. Eng. Sci. 41, 2883–2890. Graaf, G. H. &amp; Winkelman, J. G. M. (2016) Ind. Eng. Chem. Res., doi:10.1021/acs.iecr.6b00815.</div>
-    ${foot('<span class="verdict-chip v-pass">Agrees within the spread of the literature</span>', link({ eq: "CO + H2O(g) -> CO2 + H2", T: 700 }))}
+    ${foot('<span class="verdict-chip v-pass">Matches as closely as the published sources match each other</span>', link({ eq: "CO + H2O(g) -> CO2 + H2", T: 700 }))}
   </section>`);
 
   // Errors made during the build
   S.push(`<section class="slide">
     <div class="kicker">What went wrong while building it</div>
-    <h2>Five errors the AI made, and what caught them</h2>
+    <h2>Five mistakes the AI made, and how they were caught</h2>
+    ${inShort("the AI filled in some property values from memory, and five were wrong. Most were caught by checking that the numbers agree with each other.")}
     <div class="body">
-      <table class="data"><thead><tr><th class="left">Item</th><th class="left">AI’s first answer</th><th class="left">How it was caught</th><th class="left">Correction</th></tr></thead><tbody>
-        <tr><td class="left">Textbook check case</td><td class="left">Methanol-synthesis example taken as 800 K</td><td class="left">Test failed: −102.21 vs −103.57 kJ/mol</td><td class="left">The example is at 800 °C = 1073.15 K</td></tr>
-        <tr><td class="left">Cp of H₂O₂(g) and CH₃COOH(g)</td><td class="left">Left as zero (not in SVA Table C.1)</td><td class="left">Cp = 0 is physically impossible</td><td class="left">Fitted to TRC data, max error 1.1% and 0.6%</td></tr>
-        <tr><td class="left">ΔG°f of CH₃CHO(g)</td><td class="left">−128.86 kJ/mol</td><td class="left">Off by 4.1 kJ/mol from ΔH°f − TΔS°f</td><td class="left">−133.0 kJ/mol (CRC Handbook)</td></tr>
-        <tr><td class="left">ΔH°f of CH₃COOH(g)</td><td class="left">−432.8 kJ/mol</td><td class="left">Off by 0.6 kJ/mol from ΔG°f and S°</td><td class="left">−432.2 kJ/mol (CRC Handbook)</td></tr>
-        <tr><td class="left">S° of 1-butene</td><td class="left">305.6 J/(mol·K)</td><td class="left">ΔG°f check off by 0.7 kJ/mol</td><td class="left">307.9 J/(mol·K)</td></tr>
+      <table class="data"><thead><tr><th class="left">What</th><th class="left">The AI’s value</th><th class="left">How it was caught</th><th class="left">Fixed value</th></tr></thead><tbody>
+        <tr><td class="left">Textbook test case</td><td class="left">Ran the methanol example at 800 K</td><td class="left">The solver’s answer (−102.21 kJ/mol) didn’t match the book’s (−103.57)</td><td class="left">The book means 800 °C, which is 1073.15 K</td></tr>
+        <tr><td class="left">Cp° of H₂O₂ and acetic acid vapour</td><td class="left">Set to zero (missing from the textbook table)</td><td class="left">A heat capacity of zero is physically impossible</td><td class="left">Fitted to measured data (TRC), within 1.1% and 0.6%</td></tr>
+        <tr><td class="left">ΔG°f of acetaldehyde vapour</td><td class="left">−128.86 kJ/mol</td><td class="left">4.1 kJ/mol away from ΔH°f − TΔS°f</td><td class="left">−133.0 kJ/mol (CRC Handbook)</td></tr>
+        <tr><td class="left">ΔH°f of acetic acid vapour</td><td class="left">−432.8 kJ/mol</td><td class="left">0.6 kJ/mol out of line with its ΔG°f and S°</td><td class="left">−432.2 kJ/mol (CRC Handbook)</td></tr>
+        <tr><td class="left">S° of 1-butene</td><td class="left">305.6 J/(mol·K)</td><td class="left">ΔG°f check was 0.7 kJ/mol off</td><td class="left">307.9 J/(mol·K)</td></tr>
       </tbody></table>
-      <p>Lesson: property values recalled by an AI need a second source. The identity ΔG°f = ΔH°f − TΔS°f caught three of the five slips automatically.</p>
+      <p><strong>Lesson:</strong> numbers an AI gives from memory need checking against a second source. The simple check ΔG°f = ΔH°f − TΔS°f caught three of the five mistakes automatically.</p>
     </div>
-    ${foot("Every species row in the solver lists its source.", link({ eq: "C2H5OH(g) -> CH3CHO + H2", tab: "data" }, "See the data table"))}
+    ${foot("Every species in the solver lists where its data came from.", link({ eq: "C2H5OH(g) -> CH3CHO + H2", tab: "data" }, "See the data table"))}
   </section>`);
 
   // Summary
@@ -213,16 +219,16 @@
     <div class="kicker">Summary</div>
     <h2>What the checks showed</h2>
     <div class="body">
-      <table class="data"><thead><tr><th class="left">Check</th><th class="left">Result</th><th class="left">What the solver does about it</th></tr></thead><tbody>
-        <tr><td class="left">1. Stoichiometry</td><td class="left"><span class="verdict-chip v-pass">Pass</span></td><td class="left">Refuses unbalanced or unknown input and shows the atom imbalance</td></tr>
-        <tr><td class="left">2. Constant vs Cp°(T)</td><td class="left"><span class="verdict-chip v-warn">Large effect</span></td><td class="left">Side-by-side comparison; errors of ${num(Math.min(...absErr), 0)}–${num(Math.max(...absErr), 0)} kJ/mol at 1000 K</td></tr>
-        <tr><td class="left">3. Physical state</td><td class="left"><span class="verdict-chip v-pass">Pass</span></td><td class="left">Reproduces the ${num(2 * hvap298, 0)} kJ HHV–LHV gap; flags liquids above their boiling point</td></tr>
-        <tr><td class="left">4. Correlation validity</td><td class="left"><span class="verdict-chip v-warn">One blind spot</span></td><td class="left">Warns outside each Cp range; cannot detect error inside a range</td></tr>
-        <tr><td class="left">5. Published work</td><td class="left"><span class="verdict-chip v-pass">Pass</span></td><td class="left">Within ${num(maxDG, 1)} kJ/mol of Moe (1962) and Graaf et al. (1986)</td></tr>
-        <tr><td class="left">Data built by the AI</td><td class="left"><span class="verdict-chip v-fix">5 errors fixed</span></td><td class="left">Consistency check between ΔG°f, ΔH°f and S° now runs on every reaction</td></tr>
+      <table class="data"><thead><tr><th class="left">Check</th><th class="left">Result</th><th class="left">In short</th></tr></thead><tbody>
+        <tr><td class="left">1. Is the reaction balanced?</td><td class="left"><span class="verdict-chip v-pass">Pass</span></td><td class="left">Unbalanced or unknown input is rejected, and the mismatched atoms are shown</td></tr>
+        <tr><td class="left">2. Fixed vs changing Cp°</td><td class="left"><span class="verdict-chip v-warn">Big effect</span></td><td class="left">The shortcut is ${num(Math.min(...absErr), 0)}–${num(Math.max(...absErr), 0)} kJ/mol off at 1000 K; the solver shows both side by side</td></tr>
+        <tr><td class="left">3. Liquid water vs steam</td><td class="left"><span class="verdict-chip v-pass">Pass</span></td><td class="left">Gets the ${num(2 * hvap298, 0)} kJ HHV–LHV difference right, and warns when a liquid is above its boiling point</td></tr>
+        <tr><td class="left">4. Formula ranges</td><td class="left"><span class="verdict-chip v-warn">One blind spot</span></td><td class="left">Warns outside each Cp° formula’s range, but can’t spot errors inside it</td></tr>
+        <tr><td class="left">5. Published data</td><td class="left"><span class="verdict-chip v-pass">Pass</span></td><td class="left">Within ${num(maxDG, 1)} kJ/mol of Moe (1962) and Graaf et al. (1986)</td></tr>
+        <tr><td class="left">Data the AI supplied</td><td class="left"><span class="verdict-chip v-fix">5 errors fixed</span></td><td class="left">A check that ΔG°f, ΔH°f and S° agree now runs on every reaction</td></tr>
       </tbody></table>
     </div>
-    ${foot("All numbers on these slides are computed live by the solver’s own engine.", link({}, "Open the solver"))}
+    ${foot("Every number on these slides is calculated live by the solver’s own engine.", link({}, "Open the solver"))}
   </section>`);
 
   // ------------------------------------------------------------- deck mechanics
@@ -258,7 +264,7 @@
 
   // ------------------------------------------------------------- charts
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-  Chart.defaults.color = "#566878";
+  Chart.defaults.color = "#33475a";
   const base = (xTitle, yTitle) => ({
     maintainAspectRatio: false, animation: false,
     interaction: { mode: "index", intersect: false },
@@ -270,8 +276,8 @@
   new Chart(document.getElementById("ch-cp"), {
     type: "line",
     data: { datasets: [
-      { label: "Steam reforming ΔH°, Cp°(T)", data: Ts.map(T => ({ x: T, y: kj(smr.dH(T)) })), borderColor: COL.H, borderWidth: 3, pointRadius: 0 },
-      { label: "Constant Cp°", data: Ts.map(T => ({ x: T, y: kj(smr.dH(T, "constant")) })), borderColor: COL.H, borderDash: [7, 5], borderWidth: 2.5, pointRadius: 0 },
+      { label: "Steam reforming ΔH°, Cp° changes with T", data: Ts.map(T => ({ x: T, y: kj(smr.dH(T)) })), borderColor: COL.H, borderWidth: 3, pointRadius: 0 },
+      { label: "Cp° fixed at 298 K", data: Ts.map(T => ({ x: T, y: kj(smr.dH(T, "constant")) })), borderColor: COL.H, borderDash: [7, 5], borderWidth: 2.5, pointRadius: 0 },
     ] },
     options: base("Temperature (K)", "ΔH° (kJ/mol)"),
   });
