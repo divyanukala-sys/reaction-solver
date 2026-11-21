@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plots | Reaction Energy Solver</title>
+  <!-- No parameters means nothing to plot yet: go to the setup page first. -->
+  <script>if (!location.search) location.replace("setup.html");</script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">Reaction Energy Solver</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="setup.html" aria-current="page">Solver</a>
+      <a href="errors.html">AI error challenge</a>
+    </nav>
+  </header>
+
+  <main class="page results">
+    <section class="summary-bar" aria-label="Current setup">
+      <div class="sb-head">
+        <h1 class="equation" id="eq-title"></h1>
+        <p class="sb-meta" id="sb-meta"></p>
+        <p class="note" id="eq-note"></p>
+      </div>
+      <div class="sb-actions sb-row">
+        <a class="btn btn-primary btn-sm" id="act-back" href="solver.html">← Back to values</a>
+        <a class="btn btn-secondary btn-sm" id="act-edit" href="setup.html">Edit setup</a>
+      </div>
+    </section>
+
+    <div id="messages"></div>
+
+    <section class="plots" id="plots" aria-labelledby="plots-title">
+      <h2 id="plots-title">Plots</h2>
+      <p class="small">The dashed line on each plot marks the chosen T (or P on the pressure plot), labelled with the values there.</p>
+      <div class="plot-grid" id="plot-grid"></div>
+    </section>
+  </main>
+
+  <dialog class="plot-dialog" id="plot-dialog" aria-labelledby="dlg-title">
+    <div class="dlg-inner">
+      <div class="dlg-head">
+        <h2 id="dlg-title"></h2>
+        <button type="button" class="dlg-close" id="dlg-close" aria-label="Close">×</button>
+      </div>
+      <p class="dlg-text" id="dlg-text"></p>
+      <div class="dlg-tools">
+        <div id="dlg-toggles"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="dlg-csv">Download CSV</button>
+      </div>
+      <div class="chart-box dlg-chart"><canvas id="c-modal"></canvas></div>
+      <div class="dlg-caveat" id="dlg-caveat"></div>
+    </div>
+  </dialog>
+
+  <script src="assets/vendor/chart.umd.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/thermo.js"></script>
+  <script src="assets/js/plots.js"></script>
+</body>
+</html>

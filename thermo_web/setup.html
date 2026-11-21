@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Set up | Reaction Energy Solver</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">Reaction Energy Solver</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="index.html">Home</a>
+      <a href="setup.html" aria-current="page">Solver</a>
+      <a href="errors.html">AI error challenge</a>
+    </nav>
+  </header>
+
+  <main class="page setup">
+    <h1 class="page-title">Set up a calculation</h1>
+    <p class="lede">Choose a reaction and the conditions, then press Calculate.</p>
+
+    <form id="setup-form" novalidate>
+      <section class="card" aria-labelledby="h-reaction">
+        <h2 id="h-reaction"><span class="step">1</span> Reaction</h2>
+        <p class="label">Pick a predefined reaction</p>
+        <div id="presets"></div>
+        <div class="field" style="margin-top:1.2rem">
+          <label for="eq">Or type your own reaction</label>
+          <input id="eq" type="text" spellcheck="false" autocomplete="off">
+          <div class="hint">Use the species ids, e.g. CH4, H2O(l), C(s). Fractions like 1/2 work. No phase means gas.</div>
+        </div>
+        <div class="eq-check" id="eq-check" role="status" aria-live="polite"></div>
+        <details class="species-list">
+          <summary>Available species</summary>
+          <div class="grid" id="species-list"></div>
+        </details>
+      </section>
+
+      <section class="card" aria-labelledby="h-cond">
+        <h2 id="h-cond"><span class="step">2</span> Conditions</h2>
+        <div class="cond-grid">
+          <div class="field">
+            <label for="T">Temperature (K)</label>
+            <input id="T" type="number" min="200" max="3000" step="50">
+            <div class="quick" id="T-quick" role="group" aria-label="Quick temperature">
+              <button type="button" class="chip" data-v="298.15">298</button>
+              <button type="button" class="chip" data-v="500">500</button>
+              <button type="button" class="chip" data-v="800">800</button>
+              <button type="button" class="chip" data-v="1000">1000</button>
+              <button type="button" class="chip" data-v="1500">1500</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="P">Pressure (bar)</label>
+            <input id="P" type="number" min="0.01" max="1000" step="1">
+            <div class="quick" id="P-quick" role="group" aria-label="Quick pressure">
+              <button type="button" class="chip" data-v="1">1</button>
+              <button type="button" class="chip" data-v="10">10</button>
+              <button type="button" class="chip" data-v="50">50</button>
+              <button type="button" class="chip" data-v="100">100</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label" id="range-label">Plot range (K)</span>
+          <div class="row2" role="group" aria-labelledby="range-label">
+            <input id="tlo" type="number" min="200" max="2990" step="10" aria-label="Lowest temperature on plots (K)">
+            <input id="thi" type="number" min="210" max="3000" step="10" aria-label="Highest temperature on plots (K)">
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-model">
+        <h2 id="h-model"><span class="step">3</span> Model</h2>
+        <div class="cond-grid">
+          <div class="field">
+            <span class="label" id="cp-label">Heat capacity</span>
+            <div class="seg" id="cp" role="group" aria-labelledby="cp-label">
+              <button type="button" data-v="variable">Cp°(T)</button>
+              <button type="button" data-v="constant">Constant at 298 K</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label" id="s-label">ΔS° at 298 K from</span>
+            <div class="seg" id="sroute" role="group" aria-labelledby="s-label">
+              <button type="button" data-v="gibbs">ΔH°f and ΔG°f</button>
+              <button type="button" data-v="third_law">Third-law S°</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="calc-bar">
+        <button type="submit" class="btn btn-primary btn-lg" id="calc">Calculate</button>
+        <span class="calc-msg" id="calc-msg" aria-live="polite"></span>
+      </div>
+    </form>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/thermo.js"></script>
+  <script src="assets/js/setup.js"></script>
+</body>
+</html>

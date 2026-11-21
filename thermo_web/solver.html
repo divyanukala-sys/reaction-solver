@@ -3,7 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Solver | Reaction Energy Solver</title>
+  <title>Results | Reaction Energy Solver</title>
+  <!-- No parameters means nothing to calculate yet: go to the setup page first.
+       Older links (slides) that ask for a plot with ?tab=trends|cp|pressure go to the plots page. -->
+  <script>
+    (function () {
+      if (!location.search) return location.replace("setup.html");
+      var tab = new URLSearchParams(location.search).get("tab");
+      if (tab === "trends" || tab === "cp" || tab === "pressure") location.replace("plots.html" + location.search);
+    })();
+  </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,109 +24,70 @@
     <a class="brand" href="index.html">Reaction Energy Solver</a>
     <nav class="site-nav" aria-label="Main">
       <a href="index.html">Home</a>
-      <a href="solver.html" aria-current="page">Solver</a>
+      <a href="setup.html" aria-current="page">Solver</a>
       <a href="errors.html">AI error challenge</a>
     </nav>
   </header>
 
-  <div class="solver">
-    <aside class="panel" aria-label="Inputs">
-      <h2>Reaction</h2>
-      <div class="field">
-        <span class="label">Pick a predefined reaction</span>
-        <div id="presets"></div>
+  <main class="page results">
+    <section class="summary-bar" aria-label="Current setup">
+      <div class="sb-head">
+        <h1 class="equation" id="eq-title"></h1>
+        <p class="sb-meta" id="sb-meta"></p>
+        <p class="note" id="eq-note"></p>
       </div>
-      <div class="field">
-        <label for="eq">Reaction (you can edit it)</label>
-        <input id="eq" type="text" spellcheck="false" autocomplete="off">
-        <div class="hint">Use the ids below, e.g. CH4, H2O(l), C(s). Fractions like 1/2 work. No phase means gas.</div>
-      </div>
-      <details class="species-list">
-        <summary>Available species</summary>
-        <div class="grid" id="species-list"></div>
-      </details>
-
-      <h2>Conditions</h2>
-      <div class="field">
-        <label for="T">Temperature (K)</label>
-        <input id="T" type="number" min="200" max="3000" step="50">
-        <div class="quick" id="T-quick" role="group" aria-label="Quick temperature">
-          <button type="button" class="chip" data-v="298.15">298</button>
-          <button type="button" class="chip" data-v="500">500</button>
-          <button type="button" class="chip" data-v="800">800</button>
-          <button type="button" class="chip" data-v="1000">1000</button>
-          <button type="button" class="chip" data-v="1500">1500</button>
+      <div class="sb-controls">
+        <div class="sb-field sb-reaction">
+          <label for="q-preset">Reaction</label>
+          <select id="q-preset"></select>
+        </div>
+        <div class="sb-field">
+          <label for="q-T">T (K)</label>
+          <input id="q-T" type="number" min="200" max="3000" step="50">
+        </div>
+        <div class="sb-field">
+          <label for="q-P">P (bar)</label>
+          <input id="q-P" type="number" min="0.01" max="1000" step="1">
+        </div>
+        <div class="sb-actions">
+          <a class="btn btn-primary btn-sm" id="act-plots" href="plots.html">View plots →</a>
+          <a class="btn btn-secondary btn-sm" id="act-edit" href="setup.html">Edit setup</a>
+          <button type="button" class="btn btn-secondary btn-sm" id="act-link">Copy link</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="act-reset">Reset</button>
         </div>
       </div>
-      <div class="field">
-        <label for="P">Pressure (bar)</label>
-        <input id="P" type="number" min="0.01" max="1000" step="1">
-        <div class="quick" id="P-quick" role="group" aria-label="Quick pressure">
-          <button type="button" class="chip" data-v="1">1</button>
-          <button type="button" class="chip" data-v="10">10</button>
-          <button type="button" class="chip" data-v="50">50</button>
-          <button type="button" class="chip" data-v="100">100</button>
-        </div>
-      </div>
-      <div class="field">
-        <span class="label" id="range-label">Plot range (K)</span>
-        <div class="row2" role="group" aria-labelledby="range-label">
-          <input id="tlo" type="number" min="200" max="2990" step="10" aria-label="Lowest temperature on plots (K)">
-          <input id="thi" type="number" min="210" max="3000" step="10" aria-label="Highest temperature on plots (K)">
-        </div>
-      </div>
+      <p class="toolbar-status" id="act-status" role="status" aria-live="polite"></p>
+    </section>
 
-      <h2>Model</h2>
-      <div class="field">
-        <span class="label" id="cp-label">Heat capacity</span>
-        <div class="seg" id="cp" role="group" aria-labelledby="cp-label">
-          <button type="button" data-v="variable">Cp°(T)</button>
-          <button type="button" data-v="constant">Constant at 298 K</button>
+    <div id="messages"></div>
+    <div id="numbers"></div>
+
+    <div id="result-body">
+      <section class="plots-cta">
+        <div>
+          <h2>Plots</h2>
+          <p>ΔH°, ΔG°, TΔS°, ln K, ΔS°, the Cp° comparison and equilibrium conversion against T and P, with the values at your T marked on each.</p>
         </div>
-      </div>
-      <div class="field">
-        <span class="label" id="s-label">ΔS° at 298 K from</span>
-        <div class="seg" id="sroute" role="group" aria-labelledby="s-label">
-          <button type="button" data-v="gibbs">ΔH°f and ΔG°f</button>
-          <button type="button" data-v="third_law">Third-law S°</button>
-        </div>
-      </div>
-      <p class="small">Use “Copy link to this setup” to share exactly what you see.</p>
-    </aside>
+        <a class="btn btn-primary" id="act-plots-2" href="plots.html">View plots →</a>
+      </section>
 
-    <main class="results" id="results">
-      <div class="toolbar" role="group" aria-label="Actions">
-        <button type="button" class="btn btn-primary btn-sm" id="act-link">Copy link to this setup</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="act-csv">Download CSV</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="act-reset">Reset</button>
-        <span class="toolbar-status" id="act-status" role="status" aria-live="polite"></span>
-      </div>
-      <h1 class="equation" id="eq-title"></h1>
-      <p class="note" id="eq-note"></p>
-      <div id="messages"></div>
+      <section class="more" aria-label="Details">
+        <details id="sec-sens">
+          <summary>Sensible heat breakdown</summary>
+          <div class="details-body" id="panel-sens"></div>
+        </details>
+        <details id="sec-method">
+          <summary>Method and equations</summary>
+          <div class="details-body" id="panel-method"></div>
+        </details>
+        <details id="sec-data">
+          <summary>Species data and sources</summary>
+          <div class="details-body" id="panel-data"></div>
+        </details>
+      </section>
+    </div>
+  </main>
 
-      <div id="numbers"></div>
-
-      <div id="tab-area">
-        <div class="tabs" role="tablist" id="tablist">
-          <button role="tab" data-tab="trends" id="tab-trends" aria-controls="panel-trends">Plots</button>
-          <button role="tab" data-tab="cp" id="tab-cp" aria-controls="panel-cp">Cp comparison</button>
-          <button role="tab" data-tab="sens" id="tab-sens" aria-controls="panel-sens">Sensible heat</button>
-          <button role="tab" data-tab="pressure" id="tab-pressure" aria-controls="panel-pressure">Pressure</button>
-          <button role="tab" data-tab="method" id="tab-method" aria-controls="panel-method">Method</button>
-          <button role="tab" data-tab="data" id="tab-data" aria-controls="panel-data">Species data</button>
-        </div>
-        <section class="tabpanel" role="tabpanel" id="panel-trends" aria-labelledby="tab-trends"></section>
-        <section class="tabpanel" role="tabpanel" id="panel-cp" aria-labelledby="tab-cp"></section>
-        <section class="tabpanel" role="tabpanel" id="panel-sens" aria-labelledby="tab-sens"></section>
-        <section class="tabpanel" role="tabpanel" id="panel-pressure" aria-labelledby="tab-pressure"></section>
-        <section class="tabpanel" role="tabpanel" id="panel-method" aria-labelledby="tab-method"></section>
-        <section class="tabpanel" role="tabpanel" id="panel-data" aria-labelledby="tab-data"></section>
-      </div>
-    </main>
-  </div>
-
-  <script src="assets/vendor/chart.umd.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/thermo.js"></script>
   <script src="assets/js/solver.js"></script>
