@@ -194,7 +194,7 @@
       val("s", "ΔS°(T) (J/mol·K)", num(dS)) +
       val("g", "ΔG°(T) (kJ/mol)", num(kj(dG))) +
       val("k", "K(T)", fmtK(lnK)) +
-      val("k", "Equilibrium conversion (%)", X === null ? "n/a" : num(100 * X)) +
+      val("k conv", "Equilibrium conversion (%)", X === null ? "n/a" : num(100 * X)) +
       `</div></section>` +
       `<ul class="verdict">${lines.map(l => `<li>${l}</li>`).join("")}</ul>` +
       `<p class="small">ΔG° refers to every species at 1 bar. The actual driving force is ΔG = ΔG° + RT ln Q, which depends on composition. ` +
